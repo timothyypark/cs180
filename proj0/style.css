@@ -1,0 +1,56 @@
+.image-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 20px;
+}
+
+.page-title {
+  text-align: center;
+  color: #2c3e50;
+  font-weight: 700;
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.page-subtitle {
+  text-align: center;
+  color: #555;
+  font-weight: 400;
+  font-size: 22px;
+  margin-bottom: 30px;
+}
+
+.section-header {
+  text-align: center;
+  color: #2c3e50;
+  font-weight: 700;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+figure {
+  text-align: center;
+}
+
+figcaption {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #555;
+}
+
+img {
+  border-radius: 10px;
+  transition: transform 0.3s ease;
+}
+
+img:hover {
+  transform: scale(1.05);
+}
+
+.row-caption {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 16px;
+  color: #444;
+}
