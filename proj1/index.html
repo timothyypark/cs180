@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project 1 - CS180</title>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+    </style>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1 class="page-title">CS180 Project 1: Colorizing the Prokudin-Gorskii photo collection</h1>
+    <h2 class="page-subtitle">Timothy Park</h2>
+    
+    <h3 class="section-header">Introduction</h3>
+    <div class="image-row">
+      <p class="row-caption">This project takes the Prokudin-Gorskii photo collection and applies colorization techniques to enhance the historical images. Each plate consists of grayscale prints for 3 
+        color channels: red, green, and blue. By aligning these channels, we can reconstruct the original color images. I have used several techniques to extract each plate,
+      overlap them, and combine them to form a single, aligned RGB image</p>
+    </div>
+    <figure>
+      <img src="images/pyramid_aligned_siren.jpg" alt="sirens" width="450">
+      <figcaption>siren.tif</figcaption>
+      <figcaption>Best Shift: Green (-6, -24), Red (-25, -50)</figcaption>
+    </figure>
+
+  <h3 class="section-header">Methodology</h3>
+
+    <p class="row-caption">As mentioned above, the original plates contained 3 color channels: red, green, and blue. First, I separated the plates into their own pictures in order to process,
+      leaving me with a blue plate, green plate, and red plate. I kept the blue plate as the base image, so it did not move when aligning the other two plates. Instead, I shifted
+      the green and red plates (channels 2 and 3) to find the best alignment with the blue plate(channel 1). The best alignment was determined by multiple metrics. Once I had found 
+      the best translation of the green and red plates onto the blue plate, I combined the plates to produce the final output.
+    </p>
+
+  <h3 class="section-subheader">Base Alignment</h3>
+    <p class="row-caption">For the base alignment method, I examined all possible alignments of the blue plate and the green or red plate within a window of translations. In this case,
+      the window of translations was [-15, 15] pixels in both the x and y directions. For every possible translation, I calculated the result of my value function to find the optimal alignment.
+      Below I will discuss the different value functions used to determine the best alignment.
+    </p>
+
+  <h3 class="section-subheader">SSD Norm (Euclidean Distance)</h3>
+    <p class="row-caption">To perform the SSD norm, I calculated the per-pixel difference between the two images when examining corresponding pixels. I then took the squared difference and summed
+      them up before taking the square root of the sum. In this case, the lower the SSD norm is, the better the alignment.
+    </p>
+    <math display="block">
+      <msub>
+        <mrow>
+          <mo>&#x2016;</mo>
+          <mi>A</mi>
+          <mo>&#x2212;</mo>
+          <mi>B</mi>
+          <mo>&#x2016;</mo>
+        </mrow>
+        <mn>2</mn>
+      </msub>
+      <mo>=</mo>
+      <msqrt>
+        <mrow>
+          <munderover>
+            <mo>&#x2211;</mo>
+            <mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow>
+            <mi>n</mi>
+          </munderover>
+          <munderover>
+            <mo>&#x2211;</mo>
+            <mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow>
+            <mi>n</mi>
+          </munderover>
+
+          <mfenced>
+            <mo>(</mo>
+            <mrow>
+              <msub><mi>A</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>
+              <mo>&#x2212;</mo>
+              <msub><mi>B</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>
+            </mrow>
+            <mo>)</mo>
+          </mfenced>
+          <msup><mo></mo><mn>2</mn></msup>
+        </mrow>
+      </msqrt>
+    </math>
+
+  <h3 class="section-subheader">The NCC norm</h3>
+    <p class="row-caption">The Normalized Cross-Correlation metric takes the dot product between two normalized vectors. This metric did slightly better than the SSD norm when
+      testing on smaller images, but it was much more accurate when testing on larger images such as the .tif files through the image pyramid. In order to compute this in practice,
+      we must normalize the images by subtracting the mean. This way, the metric ignores brightness concerns. We can then compute the dot product between the normalized
+      images. The higher the dot product, the more alike the pixels are, and therefore the stronger the alignment. This is a much more robust metric than SSD norm since it does
+      not get affected by differences in color brightness or contrast.
+    </p>
+    <math display="block">
+      <mtext>NCC(A,B)</mtext>
+      <mo>=</mo>
+      <mfrac>
+        <mrow>
+          <munderover>
+            <mo>&#x2211;</mo>
+            <mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow>
+            <mi>n</mi>
+          </munderover>
+          <munderover>
+            <mo>&#x2211;</mo>
+            <mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow>
+            <mi>n</mi>
+          </munderover>
+          <mo>(</mo>
+          <msub><mi>A</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>
+          <mo>&#x2212;</mo><msub><mi>&#x03BC;</mi><mi>A</mi></msub>
+          <mo>)</mo>
+          <mo>(</mo>
+          <msub><mi>B</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>
+          <mo>&#x2212;</mo><msub><mi>&#x03BC;</mi><mi>B</mi></msub>
+          <mo>)</mo>
+        </mrow>
+        <mrow>
+          <msqrt>
+            <mrow>
+              <munderover>
+                <mo>&#x2211;</mo>
+                <mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow>
+                <mi>n</mi>
+              </munderover>
+              <munderover>
+                <mo>&#x2211;</mo>
+                <mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow>
+                <mi>n</mi>
+              </munderover>
+              <mo>(</mo>
+              <msub><mi>A</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>
+              <mo>&#x2212;</mo><msub><mi>&#x03BC;</mi><mi>A</mi></msub>
+              <msup><mo>)</mo><mn>2</mn></msup>
+            </mrow>
+          </msqrt>
+          <msqrt>
+            <mrow>
+              <munderover>
+                <mo>&#x2211;</mo>
+                <mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow>
+                <mi>n</mi>
+              </munderover>
+              <munderover>
+                <mo>&#x2211;</mo>
+                <mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow>
+                <mi>n</mi>
+              </munderover>
+              <mo>(</mo>
+              <msub><mi>B</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub>
+              <mo>&#x2212;</mo><msub><mi>&#x03BC;</mi><mi>B</mi></msub>
+              <msup><mo>)</mo><mn>2</mn></msup>
+            </mrow>
+          </msqrt>
+        </mrow>
+      </mfrac>
+    </math>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_cathedral.jpg" alt="cathedral" width="250">
+      <figcaption>cathedral.jpg</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_monastery.jpg" alt="monastery" width="250">
+      <figcaption>monastery.jpg</figcaption>
+    </figure>
+
+    </div>
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_tobolsk.jpg" alt="tobolsk" width="250">
+      <figcaption>tobolsk.jpg</figcaption>
+    </figure>
+    </div>
+
+      <p class="row-caption">These images were aligned well according to the base alignment strategy, but larger images such as the .tif files could
+        not be aligned this way. Therefore, I implemented an image pyramid to better align larger images, which I will explain below.
+      </p>
+
+<h3 class="section-header">Image Pyramid Search</h3>
+  <div>
+  <p class="row-caption">Exhaustive search is straightforward, but it is not efficient for larger images. computing every single possible alignment within a 
+    [-15, 15] pixel window is too computationally expensive. That is where the image pyramid comes in. The image pyramid is a list of the same images, but
+    each image is half the size of the previous one. This way, we can start aligning the smallest images first, which is much faster. Once we find the best alignment
+    for the smallest images, we can use that as a starting point for the next larger images. Since the next larger images are twice the size of the smaller images,
+    we can multiply the best alignment offsets by 2 to get the offsets for the larger images. In this way, we can search over much smaller windows since we
+    already know we are close to the best alignmnent. We repeat this process until we have arrived back at the original image with the full resolution.
+  </p>
+  <p class="row-caption">To build the image pyramid, we repeatedly downsample the image by a factor of 2 until the smallest image has reached a minimum size (in this case, 128 pixels in either dimension).
+    Before downsampling, we apply a Gaussian filter to the image to reduce aliasing effects that can occur when we are sampling from the higher resolution image.
+    This smooths out the image slightly and ensures the downsampled image is more representative of the original image. </p>
+  <p class="row-caption">
+    Once we have the image pyramid, the alignment process is as follows:
+    <ol>
+      <li>Start with the smallest image in the pyramid.</li>
+      <li>Perform an exhaustive search over a small window (a relative size was used depending on plate image size) to find the best alignment using the NCC norm.</li>
+      <li>Record the best alignment offsets.</li>
+      <li>Move to the next larger image in the pyramid.</li>
+      <li>Multiply the previously found offsets by 2 to get the starting point for the new image.</li>
+      <li>Perform a refined search over a smaller window (e.g., [-2, 2] pixels) around the new starting point to find the best alignment for the larger image.</li>
+      <li>Repeat steps 4-6 until we have arrived at the original full-resolution image.</li>
+    </ol>
+  </p>
+  </div>
+  <h3 class="section-header">Images of Choice</h3>
+  <p class="row-caption">Here are a couple images I found interesting from the Prokudin-Gorskii collection. These images were aligned using Normalized Cross-Correlation
+    and the image pyramid method described above.
+  </p>
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_bridge.jpg" alt="bridge" width="250">
+      <figcaption>Best Shift: Green (-12, -5), Red (-28, -26)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_kurmy.jpg" alt="kurmy" width="250">
+      <figcaption>Best Shift: Green (-18, -48), Red (-38, -31)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_doorway.jpg" alt="doorway" width="250">
+      <figcaption>Green  (11, -43), Red (23, -34)</figcaption>
+    </figure>
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/bridge_triple.jpg" alt="bridge" width="250">
+
+    </figure>
+
+    <figure>
+      <img src="images/kurmy_triple.jpg" alt="kurmy" width="250">
+
+    </figure>
+
+    <figure>
+      <img src="images/doorway_triple.jpg" alt="doorway" width="250">
+
+    </figure>
+    </div>
+  <div>
+  <h3 class="section-header">Image Gallery</h3>
+  <p class="row-caption">Here is the gallery of images from the example dataset. All images have been run through my alignment algorithms.
+  </p>
+
+  <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_emir.jpg" alt="emir" width="400">
+      <figcaption>emir.tif</figcaption>
+      <figcaption>Best Shift: Green (24, -24), Red (55, -42)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_italil.jpg" alt="italil" width="400">
+      <figcaption>italil.tif</figcaption>
+      <figcaption>Best Shift: Green (21, -20), Red (35, -40)</figcaption>
+    </figure>
+
+  </div>
+  <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_church.jpg" alt="church" width="400">
+      <figcaption>church.tif</figcaption>
+      <figcaption>Best Shift: Green (4, -14), Red (-4, -20)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_three_generations.jpg" alt="three_generations" width="400">
+      <figcaption>three_generations.tif</figcaption>
+      <figcaption>Best Shift: Green (14, -17), Red (11, -30)</figcaption>
+    </figure>
+
+  </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_lugano.jpg" alt="lugano" width="400">
+      <figcaption>lugano.tif</figcaption>
+      <figcaption>Best Shift: Green (-17, -16), Red (-29, -22)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_melons.jpg" alt="melons" width="400">
+      <figcaption>melons.tif</figcaption>
+      <figcaption>Best Shift: Green (10, -5), Red (13, 5)</figcaption>
+    </figure>
+
+  </div>
+
+
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_lastochikino.jpg" alt="lastochikino" width="400">
+      <figcaption>lastochikino.tif</figcaption>
+      <figcaption>Best Shift: Green (-2, -44), Red (-9, -7)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_icon.jpg" alt="icon" width="400">
+      <figcaption>icon.tif</figcaption>
+      <figcaption>Best Shift: Green (17, -7), Red (23, -7)</figcaption>
+    </figure>
+
+  </div>
+
+
+
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_siren.jpg" alt="siren" width="400">
+      <figcaption>siren.tif</figcaption>
+      <figcaption>Best Shift: Green (-6, -24), Red (-25, -50)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_self_portrait.jpg" alt="self_portrait" width="400">
+      <figcaption>self_portrait.tif</figcaption>
+      <figcaption>Best Shift: Green (29, -14), Red (37, -9)</figcaption>
+    </figure>
+
+  </div>
+
+
+
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_harvesters.jpg" alt="harvesters" width="400">
+      <figcaption>harvesters.tif</figcaption>
+      <figcaption>Best Shift: Green (16, -2), Red (13, 0)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_cathedral.jpg" alt="cathedral" width="400">
+      <figcaption>cathedral.jpg</figcaption>
+      <figcaption>Best Shift: Green (2, -1), Red (3, 0)</figcaption>
+    </figure>
+
+  </div>
+    <div class="image-row">
+    <figure>
+      <img src="images/pyramid_aligned_tobolsk.jpg" alt="tobolsk" width="400">
+      <figcaption>tobolsk.jpg</figcaption>
+      <figcaption>Best Shift: Green (3, -1), Red (3, 2)</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/pyramid_aligned_monastery.jpg" alt="monastery" width="400">
+      <figcaption>monastery.jpg</figcaption>
+      <figcaption>Best Shift: Green (2, -10), Red (2, -11)</figcaption>
+    </figure>
+
+  </div>
+
+
+  </div>
+  <h3 class="section-header">Difficulties</h3>
+  <p class="row-caption">One notable difficulty I encountered during this project was dealing with the Gaussian filtering when constructing the image pyramid. 
+    Initially, I did not use Gaussian filtering at all, but this caused my image pyramid alignment algorithm to find the wrong alignment at smaller images and diverge at larger resolutions.
+    I then implemented a simple Gaussian filter with a 5x5 kernel, but I still needed to adjust the variance of my kernel in order to get better results from my alignment.
+  </p>
+</body>
+</html>
