@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project 2 - CS180</title>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+    </style>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1 class="page-title">CS180 Project 2: Fun with Filters and Frequencies</h1>
+    <h2 class="page-subtitle">Timothy Park</h2>
+    
+    <h3 class="section-header">Introduction</h3>
+    <div class="image-row">
+      <p class="row-caption">This project explores the different ways to filter images. Using different kernels, techniques, 
+        and methods, I was able to extract different features from images. In addition, I was able to leverage this data to
+        create other images. I used derivative kernels for edge detection, Gaussian kernels for blurring, and Laplacian
+         kernels for band pass filtering. This enabled me to process images and create fun blends with gaussian and 
+         laplacian stacks.
+      </p>
+    </div>
+    <figure>
+      <img src="images/hybrid_bruce.jpg" alt="sharky" width="450">
+      <figcaption>Hybrid Bruce</figcaption>
+    </figure>
+
+  <h3 class="section-header">Part 1.1: Convolutions From Scratch</h3>
+
+    <p class="row-caption">I first created the convolution function from scratch. Using 4 nested for loops, I can multiply each pixel by each kernel pixel one by one.
+      This includes the padding necessary to ensure the output is the same size as the input. I also implemented convolution using 2 for loops, performing 
+      element-wise multiplication and summation. When it came to runtime, the 2 for loop method was slightly faster than the 4 for loop method. This is because
+      the 2 for loop method leverages numpy's optimized array operations, which are implemented in C and take advantage of low-level optimizations and parallelism.
+      In contrast, the 4 for loop method relies on Python's interpreted loops, which are slower due to the overhead of the Python interpreter. 
+      As a result, the 2 for loop method is much more efficient for large images and can significantly reduce processing time. However, from a per-input perspective,
+      the runtime is the same. We still need to look at every pixel and every kernel value. It is only optimized by numpy. 
+    </p>
+    <p class="row-caption">When comparing to scipy.signal.convolve2d, the runtime is similar. Each function still needs to look at all vallues
+      in order to properly compute the convolution. However, scipy.signal.convolve2d is implemented in C and optimized for performance, 
+      so it may be faster for larger images or kernels. This is a small difference. Both functions have the ability to perform padding. 
+      The scipy function has more options in order to customize the padding, but both functions could achieve the same results and relatively
+      similar runtimes with specific options set.
+    </p>
+    <div class="image-row">
+      <figure>
+      <img src="images/1.1/4_loops.png" alt="4 loops" width="450">
+      <figcaption>4 Loops Convolution</figcaption>
+    </figure>
+          <figure>
+      <img src="images/1.1/2_loops.png" alt="2 loops" width="450">
+      <figcaption>2 Loops Convolution</figcaption>
+    </figure>
+    </div>
+
+    <div class="image-row">
+      <figure>
+      <img src="images/1.1/me.jpg" alt="picture of me" width="450">
+      <figcaption>Picture of Me</figcaption>
+    </figure>
+          <figure>
+      <img src="images/1.1/boxed_me.jpg" alt="boxed picture of me" width="450">
+      <figcaption>Picture of Me after applying convolution with a 9x9 box filter</figcaption>
+    </figure>
+    </div>
+    <div class="image-row">
+      
+    <figure>
+      <img src="images/1.1/d_x_d_y.png" alt="d_x and d_y kernels" width="450">
+      <figcaption>d_x and d_y Kernels</figcaption>
+    </figure>
+    </div>
+
+    <div class="image-row">
+      <figure>
+      <img src="images/1.1/vert_me.jpg" alt="me after d_y" width="450">
+      <figcaption>Me after d_y convolution</figcaption>
+    </figure>
+          <figure>
+      <img src="images/1.1/hori_me.jpg" alt="me after d_x" width="450">
+      <figcaption>Me after d_x convolution</figcaption>
+    </figure>
+    </div>
+
+  <h3 class="section-header">Part 1.2: Finite Difference Operator</h3>
+
+    <p class="row-caption"> Now, I took the d_x and d_y convolutions and applied them to the given cameraman image. 
+      Then, I computed the gradient magnitude image before binarizing it to create the edge image.
+    </p>
+    <div class="image-row">
+      <figure>
+      <img src="images/1.2/cameraman.png" alt="Original" width="430">
+      <figcaption>Original Cameraman Image</figcaption>
+    </figure>    
+
+
+    </div>
+      <div class="image-row">
+    <figure>
+      <img src="images/1.1/d_x_d_y.png" alt="d_x and d_y kernels" width="450">
+      <figcaption>d_x and d_y Kernels</figcaption>
+    </figure>
+
+    </div>
+
+    </div>
+    
+    <div class="image-row">
+    <figure>
+      <img src="images/1.2/hori_scipy.jpg" alt="d_x cameraman" width="450">
+      <figcaption>Cameraman after the d_x filter convolution</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/1.2/vert_scipy.jpg" alt="d_y cameraman" width="450">
+      <figcaption>Cameraman after the d_y filter convolution</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/1.2/edge_mag.jpg" alt="edge magnitude" width="450">
+      <figcaption>Edge Magnitude Image</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/1.2/edge_mag_bin.jpg" alt="edge magnitude binary" width="450">
+      <figcaption>Edge Magnitude Binary Image - Threshold = 0.12</figcaption>
+    </figure>
+
+    </div>
+
+  <h3 class="section-header">Part 1.3: Derivative of Gaussian Filter</h3>
+
+    <p class="row-caption"> Here, I smoothed the cameraman image using a Gaussian filter. Then I performed the
+      derivative filtering on the blurred image. I also convolved the gaussian kernel with 
+      d_x and d_y to create a derivative of gaussian filter. I then applied this filter to the original image.
+      Then, I compared the two results.
+    </p>
+
+    <h3 class="section-subheader">Using Gaussian, then Derivative</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/1.3/smoothed.jpg" alt="smoothed image" width="450">
+      <figcaption>Smoothed Image of Cameraman</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/1.3/hori_smoothed.jpg" alt="smoothed image after d_x" width="450">
+      <figcaption>Smoothed Image of Cameraman after d_x convolution</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/1.3/vert_smoothed.jpg" alt="smoothed image after d_y" width="450">
+      <figcaption>Smoothed Image of Cameraman after d_y convolution</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/1.3/edge_mag_smoothed.jpg" alt="edge magnitude on smoothed image" width="450">
+      <figcaption>Edge Magnitude on Smoothed Image of Cameraman</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/1.3/edge_mag_smoothed_bin.jpg" alt="binary edge magnitude on smoothed image" width="450">
+      <figcaption>Binary Edge Magnitude on Smoothed Image of Cameraman - Threshold: 0.12</figcaption>
+    </figure>
+
+    </div>
+  <h3 class="section-subheader">Using DoG Filters</h3>
+    <div class="image-row">
+    <figure>
+      <img src="images/1.3/dog_x.jpg" alt="dog x" width="450">
+      <figcaption>DoG for d_x over the gaussian filter</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/1.3/dog_y.jpg" alt="dog y" width="450">
+      <figcaption>DoG for d_y over the gaussian filter</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/1.3/img_after_dog_x.jpg" alt="after dog x" width="450">
+      <figcaption>Cameraman after applying DoG for d_x</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/1.3/img_after_dog_y.jpg" alt="after dog y" width="450">
+      <figcaption>Cameraman after applying DoG for d_y</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/1.3/edge_mag_dog.jpg" alt="edge magnitude after both DoG kernels" width="450">
+      <figcaption>Edge Magnitude after applying DoG for d_x and d_y</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/1.3/edge_mag_dog_bin.jpg" alt="binary edge magnitude after both DoG kernels" width="450">
+      <figcaption>Binary Edge Magnitude after applying DoG for d_x and d_y - Threshold: 0.12</figcaption>
+    </figure>
+
+    </div>
+    
+    <p class="row-caption">We see that the DoG method produces identical images to the Gaussian then Derivative method.
+    </p>
+
+  <h3 class="section-header">Part 2.1: Image "Sharpening"</h3>
+    <p class="row-caption">For this section, I looked to take the high frequencies from the image and add them on top of
+      existing image, effetively sharpening the image. To do this, I first applied a gaussian filter. Then, I subtracted
+      the result of the gaussian filter from the original image to get the high frequencies. Finally, I added the high frequencies
+      back onto the original image to get the sharpened image. As we can see by the images below, the alpha value controls
+      how much of the high frequencies we add back into the original image. A higher alpha value results in a sharper image.
+    </p>
+
+      <h3 class="section-subheader">Taj Mahal</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/taj.jpg" alt="taj" width="450">
+      <figcaption>Original Image</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/low_freq_taj.png" alt="taj" width="450">
+      <figcaption>Low Frequencies of Image</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/2.1/taj_high.png" alt="taj high" width="450">
+      <figcaption>High Frequencies of Image</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/sharpened_taj.png" alt="taj sharp" width="450">
+      <figcaption>Sharpened Image: alpha = 1.0</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.1/super_sharp_taj.png" alt="taj sharp" width="450">
+      <figcaption>Sharpened Image: alpha = 5.0</figcaption>
+    </figure>
+
+    </div>
+
+    <h3 class="section-subheader">Convict Lake</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/convict_lake.jpg" alt="convict lake" width="450">
+      <figcaption>Original Image</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/blurred_convict.jpg" alt="convict lake" width="450">
+      <figcaption>Low Frequencies of Image</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/2.1/high_convict.png" alt="convict lake high" width="450">
+      <figcaption>High Frequencies of Image</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/sharp_convict.jpg" alt="convict lake sharp" width="450">
+      <figcaption>Sharpened Image: alpha = 1.0</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.1/super_sharp_convict.jpg" alt="convict lake sharp" width="450">
+      <figcaption>Sharpened Image: alpha = 5.0</figcaption>
+    </figure>
+
+    </div>
+
+    <h3 class="section-subheader">Clayton Kershaw</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/kershaw.jpg" alt="kershaw" width="450">
+      <figcaption>Original Image</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/blurred_kershaw.jpg" alt="kershaw" width="450">
+      <figcaption>Blurry Image</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/2.1/more_blurred_kershaw.jpg" alt="kershaw high" width="450">
+      <figcaption>Blurry Image Low Frequencies</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.1/high_kershaw.png" alt="kershaw sharp" width="450">
+      <figcaption>Blurry Image High Frequencies</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.1/sharpened_kershaw.jpg" alt="kershaw sharp" width="450">
+      <figcaption>Sharpened Image: alpha = 5.0</figcaption>
+    </figure>
+
+    </div>
+    <p class="row-caption">This last set of images shows the process of trying to restore an image from
+      sharp using only the high frequencies. As we can see, it does not work the best since we are still
+      missing information.
+    </p>
+
+  <h3 class="section-header">Part 2.2: Hybrid Images</h3>
+    <p class="row-caption">To create hybrid images, I first aligned the 2 images using sample code I was given.
+      Then, I blurred one image with a gaussian filter. Then I extracted the high frequencies from the 
+      other images by subtracting out the blurred version of the image. Finally, I averaged these two images
+      together to create a hybrid image.
+    </p>
+
+    <h3 class="section-subheader">Derek + Nutmeg</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.2/DerekPicture.jpg" alt="kershaw sharp" width="450">
+      <figcaption>Image of Derek</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.2/nutmeg.jpg" alt="kershaw sharp" width="450">
+      <figcaption>Image of Nutmeg</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.2/hybrid_image.png" alt="kershaw sharp" width="450">
+      <figcaption>Hybrid Image of Derek and Nutmeg</figcaption>
+    </figure>
+
+    </div>
+
+
+
+    <h3 class="section-subheader">Squirtle + Nailong</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.2/nailong.webp" alt="kershaw sharp" width="450">
+      <figcaption>Image of Nailong</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.2/squirtle.jpg" alt="kershaw sharp" width="450">
+      <figcaption>Image of Squirtle</figcaption>
+    </figure>
+
+    </div>
+
+        <div class="image-row">
+    <figure>
+      <img src="images/2.2/aligned_nailong.png" alt="kershaw sharp" width="450">
+      <figcaption>Aligned Image of Nailong</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.2/aligned_squirtle.png" alt="kershaw sharp" width="450">
+      <figcaption>Aligned Image of Squirtle</figcaption>
+    </figure>
+
+    </div>
+
+        <div class="image-row">
+    <figure>
+      <img src="images/2.2/nailong_fft.png" alt="kershaw sharp" width="450">
+      <figcaption>FFT Analysis of Nailong Image</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.2/squirtle_fft.png" alt="kershaw sharp" width="450">
+      <figcaption>FFT Analysis of Squirtle Image</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.2/blurred_nailong_fft.png" alt="kershaw sharp" width="450">
+      <figcaption>FFT Analysis of Blurred Nailong Image</figcaption>
+    </figure>
+
+        <figure>
+      <img src="images/2.2/high_squirtle_fft.png" alt="kershaw sharp" width="450">
+      <figcaption>FFT Analysis of High Frequencies of Squirtle Image</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.2/hybrid_image_fft.png" alt="kershaw sharp" width="450">
+      <figcaption>FFT Analysis of the hybrid image</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/2.2/hybrid_squirtlong.png" alt="kershaw sharp" width="450">
+      <figcaption>Hybrid Image (Squirtle + Nailong)</figcaption>
+    </figure>
+
+    </div>    
+        <p class="row-caption">For this hybrid image, I used a Gaussian filter of size 20 and sigma 3.0.
+          I used this because it is not a very large image, so the filter did not have to be as large in 
+          size. In addition, I was able to obtain a good balance of both images. I used the same filter
+          for both images. For the low frequency image(nailong), I used the blurred image after applying
+          this Gaussian filter. For the high frequency image(squirtle), I subtracted the blurred version
+          of the image to obtain the high frequencies. Finally, I averaged the two images together to get
+          the hybrid image. I used an alpha level of 1.5 as well. In addition, I cropped the image to ensure
+          it was as clean as possible and did not include image borders.
+    </p>
+
+
+
+
+    
+    <h3 class="section-subheader">Pikachu + Snorlax</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.2/pikachu.jpg" alt="kershaw sharp" width="450">
+      <figcaption>Image of Pikachu</figcaption>
+    </figure>
+
+    <figure>
+      <img src="images/2.2/snorlax.jpg" alt="kershaw sharp" width="450">
+      <figcaption>Image of Snorlax</figcaption>
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    </figure>
+
+        <figure>
+      <img src="images/2.2/hybrid_pikalax.png" alt="kershaw sharp" width="450">
+      <figcaption>Image of Hybrid Pikachu + Snorlax</figcaption>
+    </figure>
+
+    </div>
+
+
+  <h3 class="section-header">Part 2.3: Gaussian and Laplacian Stacks</h3>
+    <p class="row-caption">The next step in image filtering is the combine images through the laplacian stack.
+      The Laplacian stack is created by taking the difference between levels of the Gaussian stack. It can be
+      thought of as a band-pass filter at each level. Each level contains the information removed by another 
+      round of the gaussian filter. 
+    </p>
+        <p class="row-caption">This information can be used to reconstruct images in creative ways. For exampled,
+          mixing images together more aggressively at lower levels of the stack allows a merged image to have
+          a smoother transition. Below is the laplacian stack for the apple and orange, as well as showing them
+          combined. At the top are the higher frequency levels, while at the bottom it will be the lower frequency
+           levels. The left column is the apple laplacian stack, middle is orange, and the right is the combined stack
+    </p>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.3/apple_laplacian/lstack_level_0.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/orange_laplacian/lstack_level_0.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/stitched_laplacian/lstack_level_0.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.3/apple_laplacian/lstack_level_1.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/orange_laplacian/lstack_level_1.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/stitched_laplacian/lstack_level_1.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    </div>
+
+        <div class="image-row">
+    <figure>
+      <img src="images/2.3/apple_laplacian/lstack_level_2.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/orange_laplacian/lstack_level_2.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/stitched_laplacian/lstack_level_2.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    </div>
+
+            <div class="image-row">
+    <figure>
+      <img src="images/2.3/apple_laplacian/lstack_level_3.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/orange_laplacian/lstack_level_3.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/stitched_laplacian/lstack_level_3.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    </div>
+
+            <div class="image-row">
+    <figure>
+      <img src="images/2.3/apple_laplacian/lstack_level_4.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/orange_laplacian/lstack_level_4.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/stitched_laplacian/lstack_level_4.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    </div>
+
+            <div class="image-row">
+    <figure>
+      <img src="images/2.3/apple.jpeg" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/orange.jpeg" alt="kershaw sharp" width="200">
+    </figure>
+
+    <figure>
+      <img src="images/2.3/hybrid_apple_orange.png" alt="kershaw sharp" width="200">
+    </figure>
+
+    </div>
+
+        </div>
+    <div class="image-row">
+    <figure>
+      <img src="images/2.3/mask_level_0.png" alt="tobolsk" width="250">
+      <figcaption>Mask used for this combining</figcaption>
+    </figure>
+    </div>
+
+    <p class="row-caption">
+      Here are other examples of using the laplacian stack to combine images. The first is a face merging example,
+      where I merged two faces together using a simple straight line mask. The second is a fun example where I 
+      merged Bruce the Shark with Bruce Willis. This used a different mask.
+    </p>
+
+    <h3 class="section-subheader">Face Merging</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.4/vivek.jpg" alt="tobolsk" width="450">
+      <figcaption>My Friend Vivek</figcaption>
+    </figure>
+    <figure>
+      <img src="images/2.4/colleen.jpeg" alt="tobolsk" width="450">
+      <figcaption>My Friend Colleen</figcaption>
+    </figure>
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.4/hybrid_vivelleen_stitched.png" alt="tobolsk" width="450">
+      <figcaption>Merged (Vivelleen)</figcaption>
+    </figure>
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.3/mask_level_0.png" alt="tobolsk" width="450">
+      <figcaption>Mask used to achieve this</figcaption>
+    </figure>
+    </div>
+
+        <h3 class="section-subheader">Bruce + Bruce</h3>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.4/bruce.jpg" alt="tobolsk" width="450">
+      <figcaption>Bruce the Shark</figcaption>
+    </figure>
+    <figure>
+      <img src="images/2.4/bruce_willis.jpg" alt="tobolsk" width="450">
+      <figcaption>Bruce Willis</figcaption>
+    </figure>
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.4/hybrid_bruce.jpg" alt="tobolsk" width="450">
+      <figcaption>Merged (Bruce + Bruce)</figcaption>
+    </figure>
+    </div>
+
+    <div class="image-row">
+    <figure>
+      <img src="images/2.4/bruce_mask.jpg" alt="tobolsk" width="450">
+      <figcaption>Mask used to achieve this (created in Google Drawing)</figcaption>
+    </figure>
+    </div>
+  
+</body>
+</html>
