@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project 2 - CS180</title>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+    </style>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1 class="page-title">CS180 Project 3: Image Warping and Mosaicing</h1>
+    <h2 class="page-subtitle">Timothy Park</h2>
+    
+    <h3 class="section-header">Part A.1: Shoot the Pictures</h3>
+    <p class="row-caption">These pictures were taken around different areas of campus, but mainly in Cory
+      337. I took multiple pictures of different rooms within the lab.
+    </p>
+    <div class="image-row">
+        <img src="images/A1/cory337B/IMG_8705.JPG" alt="B" width="250">
+        <img src="images/A1/cory337B/IMG_8703.JPG" alt="B" width="250">
+        <img src="images/A1/cory337B/IMG_8702.JPG" alt="B" width="250">
+    </div>
+    <div class="image-row">
+      <img src="images/A1/cory337D/IMG_8719.JPG" alt="D" width="250">
+      <img src="images/A1/cory337D/IMG_8720.JPG" alt="D" width="250">
+      <img src="images/A1/cory337D/IMG_8721.JPG" alt="D" width="250">
+  </div>
+  <div class="image-row">
+    <img src="images/A1/jacobs/IMG_8755.JPG" alt="J" width="250">
+    <img src="images/A1/jacobs/IMG_8756.JPG" alt="J" width="250">
+    <img src="images/A1/jacobs/IMG_8757.JPG" alt="J" width="250">
+  </div>
+
+  <h3 class="section-header">Part A.2: Recover Homographies</h3>
+
+    <p class="row-caption">In order to recover the homographies between 2 images, I placed the corresponding points in a matrix so I would be able to performed a least squares operation. We know
+      H is a 3x3 matrix, but we can transform the problem such that we are solving for a vector of values. We also know that h9, the value in the 
+      bottom right corner, represents the scale. Therefore, we can set it to 1. There are therefore 8 unknowns in the matrix. Therefore, we need at least 4 points to solve for the homography. 
+      Below is the equation to compute the homography:
+    </p>
+    <div class="image-row">
+      <figure>
+      <img src="images/A2/h.png" alt="h" width="450">
+    </figure>
+    <figure>
+      <img src="images/A2/sys_equations.png" alt="h" width="450">
+    </figure>
+    </div>
+    
+    <div class="image-row">
+      <figure>
+      <img src="images/A2/cory337B/8700.png" alt="4 loops" width="450">
+    </figure>
+
+    <figure>
+      <img src="images/A2/cory337B/8701_w_8700_pts.png" alt="2 loops" width="450">
+    </figure>
+    </div>
+
+    <div class="image-row">
+      <figure>
+      <img src="images/A2/cory337B/h_matrix.png" alt="picture of me" width="450">
+    </figure>
+
+    </div>
+
+    <div class="image-row">
+      <figure>
+      <img src="images/A2/cory337B_2/8703.png" alt="4 loops" width="450">
+    </figure>
+
+    <figure>
+      <img src="images/A2/cory337B_2/8705_w_8703_pts.png" alt="2 loops" width="450">
+    </figure>
+    </div>
+
+    <div class="image-row">
+      <figure>
+      <img src="images/A2/cory337B_2/h_matrix.png" alt="picture of me" width="450">
+    </figure>
+
+    </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A2/cory337D/8720.png" alt="4 loops" width="450">
+      </figure>
+  
+      <figure>
+        <img src="images/A2/cory337D/8721_w_8720_pts.png" alt="2 loops" width="450">
+      </figure>
+      </div>
+  
+      <div class="image-row">
+        <figure>
+        <img src="images/A2/cory337D/h_matrix.png" alt="picture of me" width="450">
+      </figure>
+  
+      </div>
+
+      <h3 class="section-header">Part A.3: Warp the Images</h3>
+
+      <p class="row-caption">In order to warp the image, I took the following steps. First, I found the dimensions of the new canvas I was going to put the image onto.
+        Then, I applied the homography to the image's pixels in order to get the new pixel locations. First, I used a nearest neighbor interpolation, meaning I simply 
+        rounded all the canvas pixel locations to find which pixel from the original image they corresponded to. Then, I used bilinear interpolation, meaning I took the 4 closest
+        pixels and weighted them based upon their distance to the pixel I was trying to map. This is how I was able to rectify these images. If a pixel didn't map on to the original image
+        before the homography, then I left it as a black pixel. I chose the following 2 images because 
+        they have squares in them, so I know which value needs to be at which location without performing manual measurement. I mapped the 4 corners of the square to
+        [0,0], [100, 0], [0, 100], and [100, 100] in order to make the square a perfect square.
+      </p>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A3/aruco/original.JPG" alt="h" width="450">
+        <figcaption>original</figcaption>
+      </figure>
+      <figure>
+        <img src="images/A3/aruco/aruco_overlay.png" alt="h" width="450">
+        <figcaption>with points</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A3/aruco/aruco_warped_nearest.png" alt="h" width="450">
+        <figcaption>nearest neighbor</figcaption>
+      </figure>
+      <figure>
+        <img src="images/A3/aruco/aruco_warped_bilinear.png" alt="h" width="450">
+        <figcaption>bilinear</figcaption>
+      </figure>
+      </div>
+
+
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A3/checker/original.JPG" alt="h" width="450">
+        <figcaption>original</figcaption>
+      </figure>
+      <figure>
+        <img src="images/A3/checker/checker_overlay.png" alt="h" width="450">
+        <figcaption>with points</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A3/checker/checker_warped_nearest.png" alt="h" width="450">
+        <figcaption>nearest neighbor</figcaption>
+      </figure>
+      <figure>
+        <img src="images/A3/checker/checker_warped_bilinear.png" alt="h" width="450">
+        <figcaption>bilinear</figcaption>
+      </figure>
+      </div>
+
+      <p class="row-caption">In terms of the tradeoff between nearest neighbor and bilinear interpolation, I found that bilinear interpolation was slightly slower in runtime, which makes sense because
+        it has to do more calculations. However, there were slight improvements in quality of the images because bilinear interpolation takes into account the averaging between the surrounding pixels to be more representative. 
+      </p>
+
+
+      <h3 class="section-header">Part A.4: Blend the Images into a Mosaic</h3>
+
+      <p class="row-caption">To perform mosaicing, I first computed the H matrices between the side images into the middle image. Then, I warped the side images so they became aligned with my
+        center image. After that, I created a new canvas that could incorporate all 3 images. The masks for A, B, and C are then created by using a binary mask. With these images in their padded
+        form, I then blended the 3 images together using a simple linear ramp mask. This means I found the point of intersection and I created a mask that gradually increases from 0 to 1 over a larger span.
+      </p>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/cory337B/IMG_8702.JPG" alt="h" width="450">
+        <!-- <figcaption>original</figcaption> -->
+      </figure>
+      <figure>
+        <img src="images/A4/cory337B/IMG_8703.JPG" alt="h" width="450">
+        <!-- <figcaption>with
+           points</figcaption> -->
+      </figure>
+      <figure>
+        <img src="images/A4/cory337B/IMG_8705.JPG" alt="h" width="450">
+        <!-- <figcaption>with
+           points</figcaption> -->
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/cory337B/8702_8703_8705_mosaic.jpg" alt="h" width="1000">
+        <!-- <figcaption>original</figcaption> -->
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/cory337D/IMG_8719.JPG" alt="h" width="450">
+        <!-- <figcaption>original</figcaption> -->
+      </figure>
+      <figure>
+        <img src="images/A4/cory337D/IMG_8720.JPG" alt="h" width="450">
+        <!-- <figcaption>with
+           points</figcaption> -->
+      </figure>
+      <figure>
+        <img src="images/A4/cory337D/IMG_8721.JPG" alt="h" width="450">
+        <!-- <figcaption>with
+           points</figcaption> -->
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/cory337D/8719_8720_8721_mosaic.jpg" alt="h" width="1000">
+        <!-- <figcaption>original</figcaption> -->
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/jacobs/IMG_8755.JPG" alt="h" width="450">
+        <!-- <figcaption>original</figcaption> -->
+      </figure>
+      <figure>
+        <img src="images/A4/jacobs/IMG_8756.JPG" alt="h" width="450">
+        <!-- <figcaption>with
+           points</figcaption> -->
+      </figure>
+      <figure>
+        <img src="images/A4/jacobs/IMG_8757.JPG" alt="h" width="450">
+        <!-- <figcaption>with
+           points</figcaption> -->
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/jacobs/8755_8756_8757_mosaic.jpg" alt="h" width="1000">
+        <!-- <figcaption>original</figcaption> -->
+      </figure>
+      </div>
+  
+</body>
+</html>
