@@ -172,7 +172,7 @@
 
       <div class="image-row">
         <figure>
-        <img src="images/A4/cory337B/IMG_8702.JPG" alt="h" width="450">
+        <img src="images/A4/cory337B/IMG_8705.JPG" alt="h" width="450">
         <!-- <figcaption>original</figcaption> -->
       </figure>
       <figure>
@@ -181,7 +181,7 @@
            points</figcaption> -->
       </figure>
       <figure>
-        <img src="images/A4/cory337B/IMG_8705.JPG" alt="h" width="450">
+        <img src="images/A4/cory337B/IMG_8702.JPG" alt="h" width="450">
         <!-- <figcaption>with
            points</figcaption> -->
       </figure>
@@ -241,6 +241,318 @@
         <!-- <figcaption>original</figcaption> -->
       </figure>
       </div>
+
+      <h3 class="section-header">Part B.1: Harris Corner Detection</h3>
+
+      <p class="row-caption">In this section, I performed automatic corner detection using the Harris Corner Detector. This is done by computing the second moment matrix
+        surrounding each pixel. This allows us to see the variation in intensity in both the x and y directions. If there is a high relative change in both directions, then
+        the eigenvalues of this matrix will be large, indicating a corner. Otherwise, the eigenvalues will not reflect a corner there. We can use this to find what pixels
+        are corners. In the images below, I computed the harris corners and selected the top 1000 corners based upon their corner response values.
+      </p>
+
+        <div class="image-row">
+        <figure>
+        <img src="images/B1/IMG_8720_corners_no_anms.png" alt="h" width="750">
+        <figcaption>Image 1 Top 1000 corners without ANMS</figcaption>
+      </figure>
+
+        <figure>
+        <img src="images/B1/IMG_8721_corners_no_anms.png" alt="h" width="750">
+        <figcaption>Image 2 Top 1000 corners without ANMS</figcaption>
+      </figure>
+      </div>
+
+      <h3 class="section-subheader">Adaptive Non-Maximal Suppression (ANMS)</h3>
+
+      <p class="row-caption">daptive Non-Maximal Suppression (ANMS) is a technique for corner detection that enables us to get a much more uniform distribution of corners across the image.
+        The idea is to suppress corners that are too close to each other, allowing only the strongest corners in a local neighborhood to be retained. This way, we have corners to utilize across the entire image, which helps us with image mosaicing when we may not have a large overlap between images. In the images below, I applied ANMS to the corners detected from the Harris Corner Detector and selected the top 1000 corners after applying ANMS. The algorihm for ANMS is as follows:
+        1. For each corner, compute the minimum distance to a corner with at least 90% of its corner response value (90% is an arbitrary threshold chosen by the paper)
+        2. Sort these corners based upon this minimum distance
+        3. Select the top N corners based upon the minimum distance values found in step 1
+      </p>
+
+        <div class="image-row">
+        <figure>
+        <img src="images/B1/IMG_8720_corners_yes_anms.png" alt="h" width="750">
+        <figcaption>Image 1 Top 1000 corners with ANMS</figcaption>
+      </figure>
+
+        <figure>
+        <img src="images/B1/IMG_8721_corners_yes_anms.png" alt="h" width="750">
+        <figcaption>Image 2 Top 1000 corners with ANMS</figcaption>
+      </figure>
+      </div>
   
+
+      <h3 class="section-header">Part B.2: Feature Detector Extraction</h3>
+      <p class="row-caption">Once we have corners, we need to extract feature descriptors that will help us match these corners to those in other images. To do this, we take a 40x40 patch around each detected corner. We downsample it to 8x8 by sampling every 5th pixel in both the x and y direction. The result is an 8x8 feature descriptor. Once we have this, we also normalize the patch by subtracting by the mean and dividing by the standard deviation. This ensures the contrast or gain of a specific portion of the image will not negatively affect our ability to match them together. Below is an image with its top 10 corners taken (without ANMS). Each feature descriptor is grayscaled, and it is also normalized. This will help us perform image feature descriptor comparisons later.</p>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B2/IMG_8720_corners_no_anms_boxes.png" alt="h" width="1000">
+        <figcaption>Image with Boxes for the Top 10 Patches</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B2/IMG_8720_patches/0.png" alt="h" width="300">
+        <figcaption>Patch 0</figcaption>
+        </figure>
+
+
+        <figure>
+        <img src="images/B2/IMG_8720_patches/1.png" alt="h" width="300">
+        <figcaption>Patch 1</figcaption>
+        </figure>
+
+        <figure>
+        <img src="images/B2/IMG_8720_patches/2.png" alt="h" width="300">
+        <figcaption>Patch 2</figcaption>
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B2/IMG_8720_patches/3.png" alt="h" width="300">
+        <figcaption>Patch 3</figcaption>
+        </figure>
+
+
+        <figure>
+        <img src="images/B2/IMG_8720_patches/4.png" alt="h" width="300">
+        <figcaption>Patch 4</figcaption>
+        </figure>
+
+        <figure>
+        <img src="images/B2/IMG_8720_patches/5.png" alt="h" width="300">
+        <figcaption>Patch 5</figcaption>
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B2/IMG_8720_patches/6.png" alt="h" width="300">
+        <figcaption>Patch 6</figcaption>
+        </figure>
+
+
+        <figure>
+        <img src="images/B2/IMG_8720_patches/7.png" alt="h" width="300">
+        <figcaption>Patch 7</figcaption>
+        </figure>
+
+        <figure>
+        <img src="images/B2/IMG_8720_patches/8.png" alt="h" width="300">
+        <figcaption>Patch 8</figcaption>
+        </figure>
+      </div>
+
+            <div class="image-row">
+        <figure>
+        <img src="images/B2/IMG_8720_patches/9.png" alt="h" width="300">
+        <figcaption>Patch 9</figcaption>
+        </figure>
+
+      </div>
+
+      <h3 class="section-header">Part B.3: Feature Descriptor Matching</h3>
+      <p class="row-caption">Once we have all the image patches, we can begin corner matching. To do this, I took every feature descriptor from one image and compared it to every feature descriptor in the other image using the sum of squared differences (SSD) as a measure of similarity. The top matches are then selected based on the lowest SSD values. 
+        This is a relatively slow algorithm since I have to compare every feature descriptor in image 1 to every feature descriptor in image 2, but it is an effective algorithm nonetheless. This works because I have normalized the feature descriptors, so even if they are different lighting, we will still be able to match them. I used Lowe's technique, outlined in the paper, to score the confidence in my match. Instead of simply looking at the error of the best match, we find the ratio between the best match and the second best match. If this ratio is below a certain threshold, we can state that the best match is significantly better than the second best match, so we can accept it as a good match. Otherwise, there are many places this corner can map to, and we cannot be confident in our decision. This helps eliminate many false matches that may occur due to repetitive patterns in the image. Below are the top 20 matches found between the 2 images along with their ratio images. I have also included the normalized patches for these top 20 corner matches. The indexing goes to 1000 since I was using the top 1000 corners found for each image. We see that most corners are matched well, but there are a couple that do not match at all. This is probably due to repetitive patterns found within the image.
+      </p>
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/IMG_8720_correspondences.png" alt="h" width="750">
+        <figcaption>img1 top 20 matches</figcaption>
+        </figure>
+
+        <figure>
+        <img src="images/B3/IMG_8721_correspondences.png" alt="h" width="750">
+        <figcaption>img2 top 20 matches</figcaption>
+        </figure>
+
+      </div>
+
+        <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_10_3_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_11_5_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_183_790_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_191_505_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_207_173_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_229_823_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_256_668_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_265_191_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_271_846_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_295_883_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_29_34_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_338_730_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_347_276_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_361_693_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_375_98_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_42_38_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_447_436_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_469_707_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_611_982_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_679_958_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_75_74_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/B3/correspondences/match_828_869_ratio.png" alt="h" width="450">
+        <!-- <figcaption></figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_89_454_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+
+        <figure>
+        <img src="images/B3/correspondences/match_938_929_ratio.png" alt="h" width="450">
+        <!-- <figcaption>img2 top 20 matches</figcaption> -->
+        </figure>
+      </div>
+
+      <h3 class="section-header">Part B.4: RANSAC for Robust Homography</h3>
+      <p class="row-caption">Once we have many possible point correspondences, some may be accurate and some may not be. We want to find the best homography that accounts for the outliers. To do this, we use RANSAC (Random Sample Consensus), which iteratively selects a random subset of correspondences, computes a homography, and then counts how many correspondences agree with this homography. This algorithm is run for thousands of iterations. Every iteration, we randomly sample 4 point correspondences. We compute the homography between these points and determine how many correspondences are inliers. The homography with the most inliers is chosen as the best estimate. This allows us to automatically find the best homogrpahy between two images, and subsequently warp the images onto one another in the most accurate way possible with the information available. Below are the same mosaics I produced for part A, side by side with the automatic mosaics produced in part B. We see some improvements in image clarity (ie the words "Jacobs Hall" in the third image), which indicates this algorithm has found a more accurate homography than my manual point selection.</p>
+
+      <h3 class="section-subheader">Cory 337B</h3>
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/cory337B/8702_8703_8705_mosaic.jpg" alt="h" width="750">
+        <figcaption>Manual Image Mosaicing</figcaption>
+        </figure>
+
+        <figure>
+        <img src="images/B4/IMG_8705_IMG_8703_IMG_8702_mosaic_ransac.jpg" alt="h" width="750">
+        <figcaption>RANSAC Image Mosaicing</figcaption>
+        </figure>
+
+      </div>
+    
+      <h3 class="section-subheader">Cory 337D</h3>
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/cory337D/8719_8720_8721_mosaic.jpg" alt="h" width="750">
+        <figcaption>Manual Image Mosaicing</figcaption>
+        </figure>
+
+        <figure>
+        <img src="images/B4/IMG_8719_IMG_8720_IMG_8721_mosaic_ransac.jpg" alt="h" width="750">
+        <figcaption>RANSAC Image Mosaicing</figcaption>
+        </figure>
+
+      </div>
+
+      <h3 class="section-subheader">Jacobs</h3>
+      <div class="image-row">
+        <figure>
+        <img src="images/A4/jacobs/8755_8756_8757_mosaic.jpg" alt="h" width="750">
+        <figcaption>Manual Image Mosaicing</figcaption>
+        </figure>
+
+        <figure>
+        <img src="images/B4/IMG_8755_IMG_8756_IMG_8757_mosaic_ransac.jpg" alt="h" width="750">
+        <figcaption>RANSAC Image Mosaicing</figcaption>
+        </figure>
+
+      </div>
+
 </body>
 </html>
