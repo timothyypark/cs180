@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project 4 - CS180</title>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+    </style>
+    <link rel="stylesheet" href="style.css">
+    <!-- MathJax: render LaTeX math in the page -->
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$','$'], ['\\(','\\)']],
+          displayMath: [['$$','$$'], ['\\[','\\]']]
+        },
+        svg: { fontCache: 'global' }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+    <h1 class="page-title">CS180 Project 4: Neural Radiance Fields</h1>
+    <h2 class="page-subtitle">Timothy Park</h2>
+    
+    <h3 class="section-header">Part 0: Camera Calibration and 3D Data Capture</h3>
+    <h3 class="section-subheader">0.1: Camera Calibration with ArUco Markers</h3>
+
+
+    <p class="row-caption">In this section, I took many images of a set of ArUco markers from different angles and distances. 
+      Then I used OpenCV's built-in functions like cv2.aruco.detectMarkers() and cv2.calibrateCamera() to fin the camera matrix and distortion coefficients.
+      Here is the algorithm I used here:
+      <ol>
+      <li>Detect ArUco markers in each calibration image. If there are more than 6 detected tags, discard the image. Use cv2.aruco.detectMarkers()</li>
+      <li>Find the 2D image coordinates of the marker corners</li>
+      <li>Based on which tag was detected, match them with the 3D world coordinates since we know them for all marker corners.</li>
+      <li>Estimate camera intrinsics using cv2.calibrateCamera() to find the K and distortion coefficients.</li>
+
+    </ol>
+    </p>
+    <div class="image-row">
+        <figure>
+        <img src="images/0.1/IMG_8912.JPG" alt="B" width="250">
+        <figcaption>ArUco Marker Set - View One</figcaption>
+        </figure>
+        <figure>
+        <img src="images/0.1/IMG_8924.JPG" alt="B" width="250">
+        <figcaption>ArUco Marker Set - View Two</figcaption>
+        </figure>
+    </div>
+
+  <h3 class="section-subheader">0.2: Object Scanning and Pose Estimation</h3>
+
+    <p class="row-caption">After calibrating the camera, I used one ArUco marker and took images with my small cow. For each image, 
+      I detected the marker and used Perspective-n-Point (PnP) algorithm (cv2.solvePnP()) to estimate the camera pose relative to the marker.
+      I was able to extract the rotation and translation matrices for each image relative to the marker's coordinate system. This rotation and translation defines the camera's coordinates
+      relative to the world's coordinates, allowing me to see where the camera is in 3D space for each image taken.
+    </p>
+    <div class="image-row">
+        <figure>
+        <img src="images/0.2/IMG_9033.JPG" alt="B" width="250">
+        <figcaption>ArUco Marker with Cow - View One</figcaption>
+        </figure>
+        <figure>
+        <img src="images/0.2/IMG_9036.JPG" alt="B" width="250">
+        <figcaption>ArUco Marker with Cow - View Two</figcaption>
+        </figure>
+        <figure>
+        <img src="images/0.2/IMG_9072.JPG" alt="B" width="250">
+        <figcaption>ArUco Marker with Cow - View Three</figcaption>
+        </figure>
+    </div>
+
+      <h3 class="section-subheader">0.3: Camera Pose Visualization</h3>
+
+      <p class="row-caption">To visualize this pose estimation, I visualized the camera positions in 3D space using Viser. Each camera is represented as a frustum showing its position,
+        orientation, field of view, and captured image. This enables me to visualize how my cameras are positioned relative to my object and ArUco marker in 3D space. This also helps me visualize
+        the coverage of my object from different angles, which is important for accurate 3D reconstruction
+      </p>
+
+          <div class="image-row">
+        <figure>
+        <img src="images/0.3/viser_0.png" alt="B" width="250">
+        <figcaption>Viser Visualization of 3D camera poses - View One</figcaption>
+        </figure>
+        <figure>
+        <img src="images/0.3/viser_1.png" alt="B" width="250">
+        <figcaption>Viser Visualization of 3D camera poses - View Two</figcaption>
+        </figure>
+        <figure>
+        <img src="images/0.3/viser_2.png" alt="B" width="250">
+        <figcaption>Viser Visualization of 3D camera poses - View Three</figcaption>
+        </figure>
+    </div>
+
+      <p class="row-caption">In terms of the tradeoff between nearest neighbor and bilinear interpolation, I found that bilinear interpolation was slightly slower in runtime, which makes sense because
+        it has to do more calculations. However, there were slight improvements in quality of the images because bilinear interpolation takes into account the averaging between the surrounding pixels to be more representative. 
+      </p>
+
+
+      <h3 class="section-subheader">0.4: Dataset Preparation</h3>
+
+      <p class="row-caption">To complete this section, I organizaed all images and camera pose matrices into a dataset. These were split into train and validation sets, with some generated camera poses for testing as well.
+        This will be used in later sections for NeRF training and validation. The contents of the dataset are as follows:
+        <ul>images_train: (N_train, H, W, 3) - Training images (0-255 range)</ul>
+        <ul>c2ws_train: (N_train, 4, 4) - Camera-to-world matrices for training images</ul>
+        <ul>images_val: (N_val, H, W, 3) - Validation images</ul>
+        <ul>c2ws_val: (N_val, 4, 4) - Camera-to-world matrices for validation images</ul>
+        <ul>c2ws_test: (N_test, 4, 4) - Camera-to-world matrices for new views for testing</ul>
+        <ul>focal: float - Camera focal length</ul>
+      </p>
+
+      <h3 class="section-header">Part 1: Fitting a 2D Neural Field</h3>
+
+      <p class="row-caption">In this section, I fitted a 2D neural field to represent multiple color images. A 2D neural field is a function that maps pixel coordinates
+        to RGB color values using a neural network, F: (x, y) -> (r, g, b). The goal is to train a network to compute this mapping accurately for a given image. I trained a Multi-Layer Perceptron (MLP) to learn
+        this mapping.
+      </p>
+
+      <h3 class="section-subheader">Network Architecture and Positional Encoding</h3>
+
+      <p class="row-caption">Positional Encoding is a technique to increase the dimensions of a location. This allows the neural network to better capture details at different frequencies or scales because there is more
+        information to go off of. I used sinusoidal positional encoding, which creates dimensions as follows:
+        \[
+        \gamma(p) = \big(\sin(2^{0}\pi p),\; \cos(2^{0}\pi p),\; \sin(2^{1}\pi p),\; \cos(2^{1}\pi p),\; \dots,\; \sin(2^{L-1}\pi p),\; \cos(2^{L-1}\pi p)\big)
+        \]
+        where $L$ is the number of frequency bands. In my implementation, I tested both $L=10$ and $L=3$ for the positional encoding.
+      </p>
+
+      <p class="row-caption">For my network architecture, I used the architecture shown in the spec. Here is another image of it:
+      </p>
+
+        <div class="image-row">
+        <figure>
+        <img src="images/1.1/mlp_img.jpg" alt="h" width="750">
+      </figure>
+      </div>
+
+      <p class="row-caption">Here are the training configurations used:
+        <ul>Optimizer: Adam with learning rate 1e-3</ul>
+        <ul>Loss Function: Mean Squared Error (MSE)</ul>
+        <ul>Batch Size: 10,000 random pixels per iteration</ul>
+        <ul>3,000 Iterations</ul>
+        <ul>Metric: Peak Signal-to-Noise Ratio (PSNR)</ul>
+
+        Images were preprocessed to be in range [0, 1] before training, and during inference, the output RGB values were clamped to [0, 1] as well.
+        The Sigmoid function at the end of the model ensures the output is in this range.
+      </p>
+
+      <h3 class="section-subheader">Hyperparameter Analysis</h3>
+
+        <div class="image-row">
+        <figure>
+        <img src="images/1.1/fox_hyper/3_32.png" alt="h" width="400">
+        <figcaption>L=3, layer_size = 32</figcaption>
+      </figure>
+
+        <figure>
+        <img src="images/1.1/fox_hyper/10_32.png" alt="h" width="400">
+        <figcaption>L=10, layer_size = 32</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/fox_hyper/3_256.png" alt="h" width="400">
+        <figcaption>L=3, layer_size = 256</figcaption>
+      </figure>
+
+        <figure>
+        <img src="images/1.1/fox_hyper/10_256.png" alt="h" width="400">
+        <figcaption>L=10, layer_size = 256</figcaption>
+      </figure>
+      </div>
+  
+
+      <h3 class="section-subheader">Training Progress</h3>
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/99.png" alt="h" width="500">
+        <figcaption>Iter 99</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/99.png" alt="h" width="500">
+        <figcaption>Iter 99</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/199.png" alt="h" width="500">
+        <figcaption>Iter 199</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/199.png" alt="h" width="500">
+        <figcaption>Iter 199</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/299.png" alt="h" width="500">
+        <figcaption>Iter 299</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/299.png" alt="h" width="500">
+        <figcaption>Iter 299</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/399.png" alt="h" width="500">
+        <figcaption>Iter 399</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/399.png" alt="h" width="500">
+        <figcaption>Iter 399</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/499.png" alt="h" width="500">
+        <figcaption>Iter 499</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/499.png" alt="h" width="500">
+        <figcaption>Iter 499</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/599.png" alt="h" width="500">
+        <figcaption>Iter 599</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/599.png" alt="h" width="500">
+        <figcaption>Iter 599</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/699.png" alt="h" width="500">
+        <figcaption>Iter 699</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/699.png" alt="h" width="500">
+        <figcaption>Iter 699</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/799.png" alt="h" width="500">
+        <figcaption>Iter 799</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/799.png" alt="h" width="500">
+        <figcaption>Iter 799</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/899.png" alt="h" width="500">
+        <figcaption>Iter 899</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/899.png" alt="h" width="500">
+        <figcaption>Iter 899</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/999.png" alt="h" width="500">
+        <figcaption>Iter 999</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/999.png" alt="h" width="500">
+        <figcaption>Iter 999</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/1999.png" alt="h" width="500">
+        <figcaption>Iter 1999</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/1999.png" alt="h" width="500">
+        <figcaption>Iter 1999</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/L_10_lsize_256/2999.png" alt="h" width="500">
+        <figcaption>Iter 2999</figcaption>
+      </figure>
+      <figure>
+        <img src="images/1.1/L_10_lsize_256_baseball/2999.png" alt="h" width="500">
+        <figcaption>Iter 2999</figcaption>
+      </figure>
+      </div>
+
+      <p class="row-caption">Here is my training progression for my own image and the fox example image. In addition, below is a comparison of my PSNR curves
+        for the baseball image at the 4 different hyperparameter settings specified above
+      </p>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/1.1/psnr_baseball_graph.png" alt="biggie" width="750">
+        <figcaption>PSNR Curves for Baseball Image at Different Hyperparameter Settings</figcaption>
+      </figure>
+      </div>
+
+      <h3 class="section-header">Part 2: Neural Radiance Fields (NeRF) for 3D Scenes</h3>
+      <p class="row-caption">Here, I worked with the LEGO scene from the original NeRF paper, downsampled to 200x200 resolution. The dataset contains
+        100 images taken as training, 10 for validation, and 60 novel test camera poses. The cameras are arranged in a circular path around the object, 
+        allowing us to create a 3D representation around the scene.
+      </p>
+
+      <h3 class="section-subheader">Coordinate System Transformation</h3>
+
+      <h3 class="section-subheader">World to Camera transform function</h3>
+
+      <p class="row-caption">The camera to world matrix provides us the world coordinates in camera space, so I wrote a function that transforms points from world coordinates
+        to camera coordinates by inverting the camera to world matrix. 
+        This is done by taking the rotation transpose and negating the translation after multiplying by the rotation transpose.
+        \[
+        \mathbf{X}_c = R^{\top} \big(\mathbf{X}_w - \mathbf{t}\big)
+        \]
+      </p>
+
+      <h3 class="section-subheader">Pixel to Camera Transform</h3>
+
+      <p class="row-caption">Given pixel coordinates (u, v) and a depth s, I can leverage this with the camera intrinsic matrix K to find the
+        point in camera coordinates using the following equation:
+        \[
+        \begin{bmatrix}
+        X_c \\
+        Y_c \\
+        Z_c
+        \end{bmatrix}
+        = s\,K^{-1}\begin{bmatrix}
+        u \\
+        v \\
+        1
+        \end{bmatrix}.
+        \]
+      </p>
+
+      <h3 class="section-subheader">Pixel to Ray Transform</h3>
+
+      <p class="row-caption">To bring everything together, pixel-to-ray transform takes in a pixel, and it finds the ray origin and direction
+        in world coordinates. The ray origin is simply the camera center in world coordinates, which can be extracted from the camera to world matrix.
+        The ray direction is found by transforming the pixel to camera coordinates using the pixel to camera transform, 
+        then we convert this point to world coordinates using the camera to world matrix.
+        Finally, we normalize this direction vector to get a unit direction vector.
+      </p>
+
+      <h3 class="section-header">Ray Sampling and Point Sampling</h3>
+
+      <p class="row-caption">I sampled rays from the images for training. Then for each ray, I sampled points along the ray between near and far
+        bounds. I then added random perturbations to each sampled points. These were uniformly random, and this randomness helped to reduce overfitting.
+        Here is a more concrete view of what I did:
+        <ul>Sample N random pixels from the training images</ul>
+        <ul>Convert each pixel to a ray using the camera intrinsics and pixel-to-ray transform</ul>
+        <ul>For each ray, sample K points (ie 64) using linspace(near, far, num_samples)</ul>
+        <ul>Add random perturbations to each sampled point</ul>
+        <ul>Compute 3D positions for training</ul>
+      </p>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/2.2/viser_3.png" alt="h" width="500">
+        <figcaption>Viser Ray Sampling View One</figcaption>
+      </figure>
+      <figure>
+        <img src="images/2.2/viser_4.png" alt="h" width="500">
+        <figcaption>Viser Ray Sampling View Two</figcaption>
+      </figure>
+      </div>
+
+      <div class="image-row">
+        <figure>
+        <img src="images/2.2/viser_5.png" alt="h" width="500">
+        <figcaption>Viser Ray Sampling View Three</figcaption>
+      </figure>
+      <figure>
+        <img src="images/2.2/viser_6.png" alt="h" width="500">
+        <figcaption>Viser Ray Sampling View Four</figcaption>
+      </figure>
+      </div>
+
+
+
+
+      <h3 class="section-subheader">Training Configuration</h3>
+
+      <p class="row-caption">Here are the training configurations used:
+        <ul>Optimizer: Adam with learning rate 5e-4</ul>
+        <ul>Loss Function: Mean Squared Error (MSE)</ul>
+        <ul>Batch Size: 10,000 random pixels per iteration</ul>
+        <ul>Samples per Ray: 64</ul>
+        <ul>20,000 Iterations</ul>
+        <ul>Positional Encoding: L=10 for position, L=4 for direction</ul>
+
+      </p>
+
+      <h3 class="section-subheader">Training Progression: Lego Scene</h3>
+
+      <p class="row-caption">Here is my training progression for the Lego scene at different iterations
+      </p>
+      <div class="image-row">
+        <figure>
+        <img src="images/2.2/psnr.png" alt="h" width="1000">
+        <figcaption>PSNR over 20,000 iterations</figcaption>
+      </figure>
+      </div>
+      <div class="image-row">
+        <figure>
+        <img src="images/2.2/training_progress_lego/val_img_100.png" alt="h" width="150">
+        <figcaption>Iteration 100</figcaption>
+      </figure>
+              <figure>
+        <img src="images/2.2/training_progress_lego/val_img_3000.png" alt="h" width="150">
+        <figcaption>Iteration 3000</figcaption>
+      </figure>
+                    <figure>
+        <img src="images/2.2/training_progress_lego/val_img_6000.png" alt="h" width="150">
+        <figcaption>Iteration 6000</figcaption>
+      </figure>
+      
+                    <figure>
+        <img src="images/2.2/training_progress_lego/val_img_9000.png" alt="h" width="150">
+        <figcaption>Iteration 9000</figcaption>
+      </figure>
+                    <figure>
+        <img src="images/2.2/training_progress_lego/val_img_20000.png" alt="h" width="150">
+        <figcaption>Iteration 20000</figcaption>
+      </figure>
+
+      </div>
+
+      <h3 class="section-subheader">Novel View Synthesis</h3>
+
+      <p class="row-caption">After training, I rendered images from novel camera poses in the test set. It is a video that circles around the object.</p>
+
+      <div class="video-row">
+        <video width="600" controls>
+          <source src="images/2.2/lego_spherical_render.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+
+      <h3 class="section-header">NeRF on Custom Object</h3>
+
+      <p class="row-caption">Using the same NeRF architecture and training procedure as above, I trained a NeRF model on my custom cow dataset.
+        Here is my training progression for the cow scene at different iterations
+
+      </p>
+
+      <p class="row-caption">Here are the training configurations used:
+        <ul>Optimizer: Adam with learning rate 5e-4</ul>
+        <ul>Loss Function: Mean Squared Error (MSE)</ul>
+        <ul>Batch Size: 10,000 random pixels per iteration</ul>
+        <ul>Samples per Ray: 64</ul>
+        <ul>1,000 Iterations</ul>
+        <ul>Positional Encoding: L=10 for position, L=4 for direction</ul>
+        Sidenote: It did not work at all.
+      </p>
+
+
+      <div class="image-row">
+
+
+
+
+</body>
+</html>
